@@ -31,7 +31,7 @@ use helix_view::{
     keyboard::{KeyCode, KeyModifiers},
     Document, DocumentId, Editor, Theme, View, ViewId,
 };
-use std::{mem::take, num::NonZeroUsize, ops, path::PathBuf, rc::Rc};
+use std::{mem::take, num::NonZeroUsize, ops, path::PathBuf, rc::Rc, collections::HashMap, fmt::Display, };
 
 use tui::{buffer::Buffer as Surface, text::Span};
 
@@ -678,7 +678,6 @@ impl EditorView {
 
     /// Render bufferline at the top
     pub fn render_bufferline(editor: &Editor, viewport: Rect, surface: &mut Surface) {
-        let scratch = PathBuf::from(SCRATCH_BUFFER_NAME); // default filename to use for scratch buffer
         surface.clear_with(
             viewport,
             editor
@@ -700,14 +699,14 @@ impl EditorView {
         let mut x = viewport.x;
         let current_doc = view!(editor).doc;
 
+        let documents_paths = build_bufferline_paths(editor);
+
         for doc in editor.documents() {
-            let fname = doc
-                .path()
-                .unwrap_or(&scratch)
-                .file_name()
-                .unwrap_or_default()
-                .to_str()
-                .unwrap_or_default();
+            let fname = if let Some(name) = documents_paths.get(&doc.id()) {
+                name.to_string()
+            } else {
+                SCRATCH_BUFFER_NAME.to_string()
+            };
 
             let style = if current_doc == doc.id() {
                 bufferline_active
@@ -1800,6 +1799,91 @@ impl Component for EditorView {
             cursor => cursor,
         }
     }
+}
+
+struct LevelledPathBuf {
+    path_buf: PathBuf,
+    level: usize,
+}
+
+impl LevelledPathBuf {
+    pub fn new(path: PathBuf) -> Self {
+        LevelledPathBuf {
+            path_buf: path,
+            level: 1,
+        }
+    }
+
+    pub fn increment(&mut self) {
+        self.level += 1;
+    }
+}
+
+impl Display for LevelledPathBuf {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let components: Vec<_> = self.path_buf.components().rev().take(self.level).collect();
+
+        let path = components
+            .into_iter()
+            .rev()
+            .fold(PathBuf::new(), |acc, curr| acc.join(curr));
+
+        f.write_str(path.to_str().unwrap_or_default().to_string().as_str())
+    }
+}
+
+fn get_ids_of_duplicate_paths(
+    levels: &HashMap<DocumentId, LevelledPathBuf>,
+) -> Option<Vec<DocumentId>> {
+    let mut duplicates: HashMap<String, Vec<DocumentId>> = HashMap::new();
+
+    for (id, path) in levels {
+        let name = path.to_string();
+
+        if let Some(v) = duplicates.get_mut(&name) {
+            v.push(id.to_owned());
+        } else {
+            duplicates.insert(name, vec![id.to_owned()]);
+        }
+    }
+
+    duplicates
+        .into_iter()
+        .filter_map(|s| if s.1.len() > 1 { Some(s.1) } else { None })
+        .reduce(|mut acc, mut curr| {
+            acc.append(&mut curr);
+
+            acc
+        })
+}
+
+fn adjust_paths_levels(levels: &mut HashMap<DocumentId, LevelledPathBuf>) {
+    while let Some(duplicates) = get_ids_of_duplicate_paths(&levels) {
+        for id in duplicates {
+            if let Some(level) = levels.get_mut(&id) {
+                level.increment()
+            }
+        }
+    }
+}
+
+fn build_bufferline_paths(editor: &Editor) -> HashMap<DocumentId, LevelledPathBuf> {
+    let mut levels: HashMap<DocumentId, LevelledPathBuf> = editor
+        .documents()
+        .filter_map(|d| {
+            if let Some(path) = d.relative_path() {
+                Some((d.id(), LevelledPathBuf::new(path.to_path_buf())))
+            } else if let Some(path) = d.path() {
+                Some((d.id(), LevelledPathBuf::new(path.to_owned())))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    adjust_paths_levels(&mut levels);
+
+    levels
 }
 
 fn canonicalize_key(key: &mut KeyEvent) {
