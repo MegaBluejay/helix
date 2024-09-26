@@ -1069,8 +1069,25 @@ pub fn external_docs(cx: &mut Context) {
         .external_docs(doc.identifier(), pos)
         .unwrap();
 
+    // safe because lsp couldn't be initialized without it
+    let config = doc.language_config().unwrap();
+    let prefer_local = config.prefer_local_external_docs;
+
     cx.jobs.callback(async move {
-        if let Some(url) = call.await? {
+        let response = call.await?;
+
+        let url = match response {
+            lsp::OneOf::Left(detailed) => {
+                if prefer_local {
+                    detailed.local.or(detailed.web)
+                } else {
+                    detailed.web.or(detailed.local)
+                }
+            }
+            lsp::OneOf::Right(url) => url,
+        };
+
+        if let Some(url) = url {
             crate::open_external_url_callback(url).await
         } else {
             Ok(Callback::Editor(Box::new(|_| {})))

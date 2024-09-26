@@ -169,6 +169,9 @@ pub struct LanguageConfiguration {
     pub workspace_lsp_roots: Option<Vec<PathBuf>>,
     #[serde(default)]
     pub persistent_diagnostic_sources: Vec<String>,
+
+    #[serde(default)]
+    pub prefer_local_external_docs: bool,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]

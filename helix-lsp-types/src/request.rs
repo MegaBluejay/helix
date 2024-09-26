@@ -318,7 +318,7 @@ pub enum ExternalDocsRequest {}
 
 impl Request for ExternalDocsRequest {
     type Params = TextDocumentPositionParams;
-    type Result = Option<Url>;
+    type Result = ExternalDocsResponse;
     const METHOD: &'static str = "experimental/externalDocs";
 }
 
