@@ -766,6 +766,9 @@ impl Client {
                     ]),
                     ..Default::default()
                 }),
+                experimental: Some(lsp::ExperimentalClientCapabilities {
+                    local_docs: Some(true),
+                }),
                 ..Default::default()
             },
             trace: None,
@@ -1348,7 +1351,7 @@ impl Client {
         &self,
         text_document: lsp::TextDocumentIdentifier,
         position: lsp::Position,
-    ) -> Option<impl Future<Output = Result<Option<Url>>>> {
+    ) -> Option<impl Future<Output = Result<lsp::ExternalDocsResponse>>> {
         let capabilities = self.capabilities.get().unwrap();
 
         if !capabilities
