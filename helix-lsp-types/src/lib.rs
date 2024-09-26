@@ -2065,7 +2065,13 @@ pub struct ServerCapabilities {
 
     /// Experimental server capabilities.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub experimental: Option<Value>,
+    pub experimental: Option<ExperimentalServerCapabilities>,
+}
+
+#[derive(Debug, Eq, PartialEq, Clone, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExperimentalServerCapabilities {
+    pub external_docs: Option<bool>,
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Default, Deserialize, Serialize)]

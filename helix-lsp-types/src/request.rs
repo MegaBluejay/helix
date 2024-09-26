@@ -207,6 +207,9 @@ macro_rules! lsp_request {
     ("window/showDocument") => {
         $crate::request::ShowDocument
     };
+    ("experimental/externalDocs") => {
+        $crate::request::ExternalDocsRequest
+    };
 }
 
 /// The initialize request is sent as the first request from the client to the server.
@@ -308,6 +311,15 @@ impl Request for HoverRequest {
     type Params = HoverParams;
     type Result = Option<Hover>;
     const METHOD: &'static str = "textDocument/hover";
+}
+
+#[derive(Debug)]
+pub enum ExternalDocsRequest {}
+
+impl Request for ExternalDocsRequest {
+    type Params = TextDocumentPositionParams;
+    type Result = Option<Url>;
+    const METHOD: &'static str = "experimental/externalDocs";
 }
 
 /// The signature help request is sent from the client to the server to request signature information at
@@ -1060,6 +1072,7 @@ mod test {
         check_macro!("typeHierarchy/subtypes");
         check_macro!("typeHierarchy/supertypes");
         check_macro!("workspaceSymbol/resolve");
+        check_macro!("experimental/externalDocs");
     }
 
     #[test]
