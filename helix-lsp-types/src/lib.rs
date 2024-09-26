@@ -1016,7 +1016,7 @@ impl OptionalVersionedTextDocumentIdentifier {
 /// A parameter literal used in requests to pass a text document and a position inside that document.
 #[derive(Debug, Eq, PartialEq, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct TextDocumentPositionParams {
+pub struct TextDocumentPositionParams<P = Position> {
     // !!!!!! Note:
     // In the spec ReferenceParams extends TextDocumentPositionParams
     // This modelled by "mixing-in" TextDocumentPositionParams in ReferenceParams,
@@ -1025,7 +1025,7 @@ pub struct TextDocumentPositionParams {
     pub text_document: TextDocumentIdentifier,
 
     /// The position inside the text document.
-    pub position: Position,
+    pub position: P,
 }
 
 impl TextDocumentPositionParams {
@@ -2078,6 +2078,7 @@ pub struct ServerCapabilities {
 #[serde(rename_all = "camelCase")]
 pub struct ExperimentalServerCapabilities {
     pub external_docs: Option<bool>,
+    pub hover_range: Option<bool>,
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Default, Deserialize, Serialize)]

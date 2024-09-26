@@ -335,6 +335,7 @@ pub enum LanguageServerFeature {
     RenameSymbol,
     InlayHints,
     ExternalDocs,
+    HoverRange,
 }
 
 impl Display for LanguageServerFeature {
@@ -359,6 +360,7 @@ impl Display for LanguageServerFeature {
             RenameSymbol => "rename-symbol",
             InlayHints => "inlay-hints",
             ExternalDocs => "external-docs",
+            HoverRange => "hover-range",
         };
         write!(f, "{feature}",)
     }

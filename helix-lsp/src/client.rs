@@ -358,6 +358,11 @@ impl Client {
                 .as_ref()
                 .and_then(|ext| ext.external_docs)
                 .unwrap_or(false),
+            LanguageServerFeature::HoverRange => capabilities
+                .experimental
+                .as_ref()
+                .and_then(|exp| exp.hover_range)
+                .unwrap_or(false),
         }
     }
 
@@ -1125,7 +1130,7 @@ impl Client {
     pub fn text_document_hover(
         &self,
         text_document: lsp::TextDocumentIdentifier,
-        position: lsp::Position,
+        position: OneOf<lsp::Position, lsp::Range>,
         work_done_token: Option<lsp::ProgressToken>,
     ) -> Option<impl Future<Output = Result<Value>>> {
         let capabilities = self.capabilities.get().unwrap();
