@@ -327,6 +327,7 @@ pub enum LanguageServerFeature {
     DocumentColors,
     CallHierarchy,
     ExternalDocs,
+    HoverRange,
 }
 
 impl Display for LanguageServerFeature {
@@ -355,6 +356,7 @@ impl Display for LanguageServerFeature {
             DocumentColors => "document-colors",
             CallHierarchy => "call-hierarchy",
             ExternalDocs => "external-docs",
+            HoverRange => "hover-range",
         };
         write!(f, "{feature}",)
     }
