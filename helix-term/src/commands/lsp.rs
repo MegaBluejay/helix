@@ -1059,6 +1059,25 @@ pub fn hover(cx: &mut Context) {
     );
 }
 
+pub fn external_docs(cx: &mut Context) {
+    let (view, doc) = current!(cx.editor);
+
+    let language_server =
+        language_server_with_feature!(cx.editor, doc, LanguageServerFeature::ExternalDocs);
+    let pos = doc.position(view.id, language_server.offset_encoding());
+    let call = language_server
+        .external_docs(doc.identifier(), pos)
+        .unwrap();
+
+    cx.jobs.callback(async move {
+        if let Some(url) = call.await? {
+            crate::open_external_url_callback(url).await
+        } else {
+            Ok(Callback::Editor(Box::new(|_| {})))
+        }
+    })
+}
+
 pub fn rename_symbol(cx: &mut Context) {
     fn get_prefill_from_word_boundary(editor: &Editor) -> String {
         let (view, doc) = current_ref!(editor);
