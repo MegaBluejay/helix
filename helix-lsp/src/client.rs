@@ -407,6 +407,11 @@ impl Client {
                         | CallHierarchyServerCapability::Options(_)
                 )
             ),
+            LanguageServerFeature::ExternalDocs => capabilities
+                .experimental
+                .as_ref()
+                .and_then(|ext| ext.external_docs)
+                .unwrap_or(false),
         }
     }
 
@@ -1337,6 +1342,32 @@ impl Client {
         };
 
         Some(self.call::<lsp::request::HoverRequest>(params))
+    }
+
+    pub fn external_docs(
+        &self,
+        text_document: lsp::TextDocumentIdentifier,
+        position: lsp::Position,
+    ) -> Option<impl Future<Output = Result<Option<Url>>>> {
+        let capabilities = self.capabilities.get().unwrap();
+
+        if !capabilities
+            .experimental
+            .as_ref()
+            .and_then(|exp| exp.external_docs)
+            .unwrap_or(false)
+        {
+            return None;
+        }
+
+        let params = lsp::TextDocumentPositionParams {
+            text_document,
+            position,
+        };
+
+        let request = self.call::<lsp::request::ExternalDocsRequest>(params);
+
+        Some(request)
     }
 
     // formatting
