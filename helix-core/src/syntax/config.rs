@@ -277,6 +277,7 @@ pub enum LanguageServerFeature {
     InlayHints,
     DocumentColors,
     ExternalDocs,
+    HoverRange,
 }
 
 impl Display for LanguageServerFeature {
@@ -303,6 +304,7 @@ impl Display for LanguageServerFeature {
             InlayHints => "inlay-hints",
             DocumentColors => "document-colors",
             ExternalDocs => "external-docs",
+            HoverRange => "hover-range",
         };
         write!(f, "{feature}",)
     }
