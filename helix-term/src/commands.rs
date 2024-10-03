@@ -427,6 +427,7 @@ impl MappableCommand {
         goto_previous_buffer, "Goto previous buffer",
         goto_line_end_newline, "Goto newline at line end",
         goto_first_nonwhitespace, "Goto first non-blank in line",
+        goto_line_start_dwim, "Goto first non-blank in line, or start of line if already there",
         trim_selections, "Trim whitespace from selections",
         extend_to_line_start, "Extend to line start",
         extend_to_first_nonwhitespace, "Extend to first non-blank in line",
@@ -972,6 +973,32 @@ fn goto_first_nonwhitespace_impl(view: &mut View, doc: &mut Document, movement: 
         } else {
             range
         }
+    });
+    doc.set_selection(view.id, selection);
+}
+
+fn goto_line_start_dwim(cx: &mut Context) {
+    let (view, doc) = current!(cx.editor);
+    let movement = if cx.editor.mode == Mode::Select {
+        Movement::Extend
+    } else {
+        Movement::Move
+    };
+    let text = doc.text().slice(..);
+
+    let selection = doc.selection(view.id).clone().transform(|range| {
+        let line = range.cursor_line(text);
+        let line_start = text.line_to_char(line);
+        let first = text
+            .line(line)
+            .first_non_whitespace_char()
+            .map(|first| first + line_start);
+        let current = range.cursor(text);
+        let pos = match first {
+            Some(first) if first != current => first,
+            _ => line_start,
+        };
+        range.put_cursor(text, pos, movement == Movement::Extend)
     });
     doc.set_selection(view.id, selection);
 }
