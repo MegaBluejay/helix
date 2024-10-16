@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    MarkedString, MarkupContent, MarkupKind, Range, TextDocumentPositionParams,
+    MarkedString, MarkupContent, MarkupKind, OneOf, Position, Range, TextDocumentPositionParams,
     TextDocumentRegistrationOptions, WorkDoneProgressOptions, WorkDoneProgressParams,
 };
 
@@ -59,7 +59,7 @@ impl From<bool> for HoverProviderCapability {
 #[serde(rename_all = "camelCase")]
 pub struct HoverParams {
     #[serde(flatten)]
-    pub text_document_position_params: TextDocumentPositionParams,
+    pub text_document_position_params: TextDocumentPositionParams<OneOf<Position, Range>>,
 
     #[serde(flatten)]
     pub work_done_progress_params: WorkDoneProgressParams,

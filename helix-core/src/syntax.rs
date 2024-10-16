@@ -173,6 +173,9 @@ pub struct LanguageConfiguration {
     pub workspace_lsp_roots: Option<Vec<PathBuf>>,
     #[serde(default)]
     pub persistent_diagnostic_sources: Vec<String>,
+
+    #[serde(default)]
+    pub prefer_local_external_docs: bool,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -335,6 +338,8 @@ pub enum LanguageServerFeature {
     Diagnostics,
     RenameSymbol,
     InlayHints,
+    ExternalDocs,
+    HoverRange,
 }
 
 impl Display for LanguageServerFeature {
@@ -358,6 +363,8 @@ impl Display for LanguageServerFeature {
             Diagnostics => "diagnostics",
             RenameSymbol => "rename-symbol",
             InlayHints => "inlay-hints",
+            ExternalDocs => "external-docs",
+            HoverRange => "hover-range",
         };
         write!(f, "{feature}",)
     }

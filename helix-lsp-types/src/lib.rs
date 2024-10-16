@@ -1016,7 +1016,7 @@ impl OptionalVersionedTextDocumentIdentifier {
 /// A parameter literal used in requests to pass a text document and a position inside that document.
 #[derive(Debug, Eq, PartialEq, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct TextDocumentPositionParams {
+pub struct TextDocumentPositionParams<P = Position> {
     // !!!!!! Note:
     // In the spec ReferenceParams extends TextDocumentPositionParams
     // This modelled by "mixing-in" TextDocumentPositionParams in ReferenceParams,
@@ -1025,7 +1025,7 @@ pub struct TextDocumentPositionParams {
     pub text_document: TextDocumentIdentifier,
 
     /// The position inside the text document.
-    pub position: Position,
+    pub position: P,
 }
 
 impl TextDocumentPositionParams {
@@ -1629,7 +1629,13 @@ pub struct ClientCapabilities {
 
     /// Experimental client capabilities.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub experimental: Option<Value>,
+    pub experimental: Option<ExperimentalClientCapabilities>,
+}
+
+#[derive(Debug, PartialEq, Clone, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExperimentalClientCapabilities {
+    pub local_docs: Option<bool>,
 }
 
 #[derive(Debug, PartialEq, Clone, Default, Deserialize, Serialize)]
@@ -2065,7 +2071,14 @@ pub struct ServerCapabilities {
 
     /// Experimental server capabilities.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub experimental: Option<Value>,
+    pub experimental: Option<ExperimentalServerCapabilities>,
+}
+
+#[derive(Debug, Eq, PartialEq, Clone, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExperimentalServerCapabilities {
+    pub external_docs: Option<bool>,
+    pub hover_range: Option<bool>,
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Default, Deserialize, Serialize)]
@@ -2690,6 +2703,14 @@ pub struct ApplyWorkspaceEditResponse {
     /// if the client signals a `failureHandlingStrategy` in its client capabilities.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub failed_change: Option<u32>,
+}
+
+pub type ExternalDocsResponse = OneOf<ExternalDocsDetailed, Option<Url>>;
+
+#[derive(Debug, Eq, PartialEq, Clone, Deserialize, Serialize)]
+pub struct ExternalDocsDetailed {
+    pub web: Option<Url>,
+    pub local: Option<Url>,
 }
 
 /// Describes the content type that a client supports in various
