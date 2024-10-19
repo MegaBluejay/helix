@@ -373,6 +373,7 @@ impl MappableCommand {
         extend_line, "Select current line, if already selected, extend to another line based on the anchor",
         extend_line_below, "Select current line, if already selected, extend to next line",
         extend_line_above, "Select current line, if already selected, extend to previous line",
+        shrink_line, "Shrink line above or below based on the anchor",
         select_line_above, "Select current line, if already selected, extend or shrink line above based on the anchor",
         select_line_below, "Select current line, if already selected, extend or shrink line below based on the anchor",
         extend_to_line_bounds, "Extend selection to line bounds",
@@ -441,6 +442,7 @@ impl MappableCommand {
         goto_previous_buffer, "Goto previous buffer",
         goto_line_end_newline, "Goto newline at line end",
         goto_first_nonwhitespace, "Goto first non-blank in line",
+        goto_line_start_dwim, "Goto first non-blank in line, or start of line if already there",
         trim_selections, "Trim whitespace from selections",
         extend_to_line_start, "Extend to line start",
         extend_to_first_nonwhitespace, "Extend to first non-blank in line",
@@ -988,6 +990,32 @@ fn goto_first_nonwhitespace_impl(view: &mut View, doc: &mut Document, movement: 
         } else {
             range
         }
+    });
+    doc.set_selection(view.id, selection);
+}
+
+fn goto_line_start_dwim(cx: &mut Context) {
+    let (view, doc) = current!(cx.editor);
+    let movement = if cx.editor.mode == Mode::Select {
+        Movement::Extend
+    } else {
+        Movement::Move
+    };
+    let text = doc.text().slice(..);
+
+    let selection = doc.selection(view.id).clone().transform(|range| {
+        let line = range.cursor_line(text);
+        let line_start = text.line_to_char(line);
+        let first = text
+            .line(line)
+            .first_non_whitespace_char()
+            .map(|first| first + line_start);
+        let current = range.cursor(text);
+        let pos = match first {
+            Some(first) if first != current => first,
+            _ => line_start,
+        };
+        range.put_cursor(text, pos, movement == Movement::Extend)
     });
     doc.set_selection(view.id, selection);
 }
@@ -2610,6 +2638,57 @@ fn extend_line_impl(cx: &mut Context, extend: Extend) {
 
     doc.set_selection(view.id, selection);
 }
+
+fn shrink_line(cx: &mut Context) {
+    let count = cx.count();
+    let (view, doc) = current!(cx.editor);
+
+    let extend = match doc.selection(view.id).primary().direction() {
+        Direction::Forward => Extend::Below,
+        Direction::Backward => Extend::Above,
+    };
+
+    let text = doc.text();
+    let saturating_add = |a: usize, b: usize| (a + b).min(text.len_lines());
+    let selection = doc.selection(view.id).clone().transform(|range| {
+        let (start_line, end_line) = range.line_range(text.slice(..));
+        let start = text.line_to_char(start_line);
+        let end = text.line_to_char(saturating_add(end_line, 1));
+
+        if range.from() != start || range.to() != end {
+            return range;
+        }
+
+        let (anchor_line, head_line) = match &extend {
+            Extend::Below => (start_line, end_line.saturating_sub(count)),
+            Extend::Above => (end_line, saturating_add(start_line, count)),
+        };
+        let (anchor, head) = match anchor_line.cmp(&head_line) {
+            Ordering::Less => (
+                text.line_to_char(anchor_line),
+                text.line_to_char(saturating_add(head_line, 1)),
+            ),
+            Ordering::Equal => match extend {
+                Extend::Above => (
+                    text.line_to_char(saturating_add(anchor_line, 1)),
+                    text.line_to_char(head_line),
+                ),
+                Extend::Below => (
+                    text.line_to_char(head_line),
+                    text.line_to_char(saturating_add(anchor_line, 1)),
+                ),
+            },
+            Ordering::Greater => (
+                text.line_to_char(saturating_add(anchor_line, 1)),
+                text.line_to_char(head_line),
+            ),
+        };
+        Range::new(anchor, head)
+    });
+
+    doc.set_selection(view.id, selection);
+}
+
 fn select_line_below(cx: &mut Context) {
     select_line_impl(cx, Extend::Below);
 }
