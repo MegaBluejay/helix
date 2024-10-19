@@ -3,9 +3,9 @@ use helix_lsp::{
     block_on,
     lsp::{
         self, CodeAction, CodeActionOrCommand, CodeActionTriggerKind, DiagnosticSeverity,
-        NumberOrString,
+        NumberOrString, OneOf,
     },
-    util::{diagnostic_to_lsp_diagnostic, lsp_range_to_range, range_to_lsp_range},
+    util::{diagnostic_to_lsp_diagnostic, lsp_range_to_range, pos_to_lsp_pos, range_to_lsp_range},
     Client, LanguageServerId, OffsetEncoding,
 };
 use tokio_stream::StreamExt;
@@ -1014,8 +1014,22 @@ pub fn hover(cx: &mut Context) {
     // TODO support multiple language servers (merge UI somehow)
     let language_server =
         language_server_with_feature!(cx.editor, doc, LanguageServerFeature::Hover);
-    // TODO: factor out a doc.position_identifier() that returns lsp::TextDocumentPositionIdentifier
-    let pos = doc.position(view.id, language_server.offset_encoding());
+
+    let hover_range = language_server.supports_feature(LanguageServerFeature::HoverRange);
+
+    let selection = doc.selection(view.id).primary();
+    let text = doc.text();
+    let offset_encoding = language_server.offset_encoding();
+    let pos = if !hover_range || selection.is_empty() {
+        OneOf::Left(pos_to_lsp_pos(
+            text,
+            selection.cursor(text.slice(..)),
+            offset_encoding,
+        ))
+    } else {
+        OneOf::Right(range_to_lsp_range(text, selection, offset_encoding))
+    };
+
     let future = language_server
         .text_document_hover(doc.identifier(), pos, None)
         .unwrap();
@@ -1057,6 +1071,42 @@ pub fn hover(cx: &mut Context) {
             }
         },
     );
+}
+
+pub fn external_docs(cx: &mut Context) {
+    let (view, doc) = current!(cx.editor);
+
+    let language_server =
+        language_server_with_feature!(cx.editor, doc, LanguageServerFeature::ExternalDocs);
+    let pos = doc.position(view.id, language_server.offset_encoding());
+    let call = language_server
+        .external_docs(doc.identifier(), pos)
+        .unwrap();
+
+    // safe because lsp couldn't be initialized without it
+    let config = doc.language_config().unwrap();
+    let prefer_local = config.prefer_local_external_docs;
+
+    cx.jobs.callback(async move {
+        let response = call.await?;
+
+        let url = match response {
+            lsp::OneOf::Left(detailed) => {
+                if prefer_local {
+                    detailed.local.or(detailed.web)
+                } else {
+                    detailed.web.or(detailed.local)
+                }
+            }
+            lsp::OneOf::Right(url) => url,
+        };
+
+        if let Some(url) = url {
+            crate::open_external_url_callback(url).await
+        } else {
+            Ok(Callback::Editor(Box::new(|_| {})))
+        }
+    })
 }
 
 pub fn rename_symbol(cx: &mut Context) {

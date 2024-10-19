@@ -353,6 +353,16 @@ impl Client {
                 capabilities.inlay_hint_provider,
                 Some(OneOf::Left(true) | OneOf::Right(InlayHintServerCapabilities::Options(_)))
             ),
+            LanguageServerFeature::ExternalDocs => capabilities
+                .experimental
+                .as_ref()
+                .and_then(|ext| ext.external_docs)
+                .unwrap_or(false),
+            LanguageServerFeature::HoverRange => capabilities
+                .experimental
+                .as_ref()
+                .and_then(|exp| exp.hover_range)
+                .unwrap_or(false),
         }
     }
 
@@ -674,6 +684,9 @@ impl Client {
                         PositionEncodingKind::UTF16,
                     ]),
                     ..Default::default()
+                }),
+                experimental: Some(lsp::ExperimentalClientCapabilities {
+                    local_docs: Some(true),
                 }),
                 ..Default::default()
             },
@@ -1117,7 +1130,7 @@ impl Client {
     pub fn text_document_hover(
         &self,
         text_document: lsp::TextDocumentIdentifier,
-        position: lsp::Position,
+        position: OneOf<lsp::Position, lsp::Range>,
         work_done_token: Option<lsp::ProgressToken>,
     ) -> Option<impl Future<Output = Result<Value>>> {
         let capabilities = self.capabilities.get().unwrap();
@@ -1141,6 +1154,32 @@ impl Client {
         };
 
         Some(self.call::<lsp::request::HoverRequest>(params))
+    }
+
+    pub fn external_docs(
+        &self,
+        text_document: lsp::TextDocumentIdentifier,
+        position: lsp::Position,
+    ) -> Option<impl Future<Output = Result<lsp::ExternalDocsResponse>>> {
+        let capabilities = self.capabilities.get().unwrap();
+
+        if !capabilities
+            .experimental
+            .as_ref()
+            .and_then(|exp| exp.external_docs)
+            .unwrap_or(false)
+        {
+            return None;
+        }
+
+        let params = lsp::TextDocumentPositionParams {
+            text_document,
+            position,
+        };
+
+        let request = self.call::<lsp::request::ExternalDocsRequest>(params);
+
+        Some(async move { Ok(serde_json::from_value(request.await?)?) })
     }
 
     // formatting
