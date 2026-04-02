@@ -749,7 +749,7 @@ impl Client {
                         symbol_kind: Some(lsp::SymbolKindCapability {
                             value_set: Some(lsp::SymbolKind::all()),
                         }),
-                        hierarchical_document_symbol_support: Some(false),
+                        hierarchical_document_symbol_support: Some(true),
                         ..Default::default()
                     }),
                     ..Default::default()
@@ -1645,7 +1645,7 @@ impl Client {
 
         // Return early if the server does not support document symbols.
         match capabilities.document_symbol_provider {
-            Some(lsp::OneOf::Left(true) | lsp::OneOf::Right(_)) => (),
+            Some(lsp::OneOf::Left(true) | lsp::OneOf::Right(_)) => {}
             _ => return None,
         }
 
