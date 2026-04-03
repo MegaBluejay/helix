@@ -749,46 +749,46 @@ impl EditorView {
 
         let mut x = viewport.x;
 
-        if let Some(path) = doc.relative_path() {
-            let mut components = path.components().peekable();
-            let mut is_first = true;
+        // if let Some(path) = doc.relative_path() {
+        //     let mut components = path.components().peekable();
+        //     let mut is_first = true;
 
-            while let Some(component) = components.next() {
-                if x >= viewport.right() {
-                    break;
-                }
+        //     while let Some(component) = components.next() {
+        //         if x >= viewport.right() {
+        //             break;
+        //         }
 
-                if !is_first {
-                    if x + separator_width as u16 >= viewport.right() {
-                        break;
-                    }
-                    x = surface
-                        .set_stringn(x, viewport.y, separator, separator_width, separator_style)
-                        .0;
-                }
+        //         if !is_first {
+        //             if x + separator_width as u16 >= viewport.right() {
+        //                 break;
+        //             }
+        //             x = surface
+        //                 .set_stringn(x, viewport.y, separator, separator_width, separator_style)
+        //                 .0;
+        //         }
 
-                let segment = component.as_os_str().to_string_lossy();
-                let is_directory = components.peek().is_some();
+        //         let segment = component.as_os_str().to_string_lossy();
+        //         let is_directory = components.peek().is_some();
 
-                let style = if is_directory {
-                    editor.theme.get("ui.text.directory")
-                } else {
-                    style
-                };
+        //         let style = if is_directory {
+        //             editor.theme.get("ui.text.directory")
+        //         } else {
+        //             style
+        //         };
 
-                let remaining = viewport.right().saturating_sub(x) as usize;
-                x = surface
-                    .set_stringn(x, viewport.y, segment, remaining, style)
-                    .0;
-                is_first = false;
-            }
-        } else {
-            // Handle `[scratch]`
-            let remaining = viewport.right().saturating_sub(x) as usize;
-            x = surface
-                .set_stringn(x, viewport.y, SCRATCH_BUFFER_NAME, remaining, style)
-                .0;
-        }
+        //         let remaining = viewport.right().saturating_sub(x) as usize;
+        //         x = surface
+        //             .set_stringn(x, viewport.y, segment, remaining, style)
+        //             .0;
+        //         is_first = false;
+        //     }
+        // } else {
+        //     // Handle `[scratch]`
+        //     let remaining = viewport.right().saturating_sub(x) as usize;
+        //     x = surface
+        //         .set_stringn(x, viewport.y, SCRATCH_BUFFER_NAME, remaining, style)
+        //         .0;
+        // }
 
         // Draw symbols, if any.
         if let Some(breadcrumb) = doc.breadcrumbs.get(&view.id) {
